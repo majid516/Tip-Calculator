@@ -213,7 +213,7 @@ class LandingScreenBodyComponents extends StatelessWidget {
           ),
           AnimationWidget(positionController: _positionController, rotationController: _rotationController, textController: _textController, painterController: _painterController, currentTextIndex: currentTextIndex, painterAnimation: _painterAnimation, rotationAnimation: _rotationAnimation, textLines: textLines, topPadding: topPadding, textHeight: textHeight, leftPadding: leftPadding),
           // Time-manager text and button at the bottom
-     //     CustomGetStartedButton(stopAnimation: stopAnimation,),
+         CustomGetStartedButton(stopAnimation: stopAnimation,),
         ],
       ),
     );
