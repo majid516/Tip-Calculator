@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:tip_calculator/core/components/custom_snackbar.dart';
 import 'package:tip_calculator/core/constants/app_theme/app_theme.dart';
 import 'package:tip_calculator/core/constants/screen_size/screen_size.dart';
+import 'package:tip_calculator/core/constants/spaces/space.dart';
 import 'package:tip_calculator/core/constants/utils/textfield_hight.dart';
 import 'package:tip_calculator/features/home/view/screens/history_screen.dart';
 
-
-
 // Custom TextFormField Widget
-class CustomTextFormField extends StatelessWidget {
+class CustomTextFormField extends StatefulWidget {
   final TextEditingController controller;
   final String labelText;
   final IconData prefixIcon;
@@ -28,30 +27,56 @@ class CustomTextFormField extends StatelessWidget {
   });
 
   @override
+  State<CustomTextFormField> createState() => _CustomTextFormFieldState();
+}
+
+class _CustomTextFormFieldState extends State<CustomTextFormField> {
+  bool _hasInteracted = false;
+
+  @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: TextfieldHight.textfieldHeight,
+      height:
+          TextfieldHight.textfieldHeight +
+          20, // Increased to accommodate error text
       child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
+        controller: widget.controller,
+        keyboardType: widget.keyboardType,
         decoration: InputDecoration(
-          labelText: labelText,
+          label: Text(widget.labelText),
+
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: MyColors.primaryColor, width: 2),
+            borderSide: const BorderSide(
+              color: MyColors.primaryColor,
+              width: 2,
+            ),
           ),
-          prefixIcon: Icon(prefixIcon, color: MyColors.primaryColor),
+          prefixIcon: Icon(widget.prefixIcon, color: MyColors.primaryColor),
           errorStyle: const TextStyle(
             fontSize: 12,
-            height: 0.5,
+            height: 1.0, // Fixed height for error text
           ),
           errorMaxLines: 1,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 10,
+            horizontal: 12,
+          ),
         ),
-        validator: validator,
-        onChanged: onChanged,
-        autovalidateMode: AutovalidateMode.onUserInteraction, // Enable real-time validation
+        validator: widget.validator,
+        onChanged: (value) {
+          setState(() {
+            _hasInteracted = true; // Enable validation only after interaction
+          });
+          if (widget.onChanged != null) {
+            widget.onChanged!(value);
+          }
+        },
+        autovalidateMode:
+            _hasInteracted
+                ? AutovalidateMode.onUserInteraction
+                : AutovalidateMode.disabled,
         style: const TextStyle(fontSize: 16),
       ),
     );
@@ -66,7 +91,8 @@ class TipCalculatorScreen extends StatefulWidget {
   State<TipCalculatorScreen> createState() => _TipCalculatorScreenState();
 }
 
-class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTickerProviderStateMixin {
+class _TipCalculatorScreenState extends State<TipCalculatorScreen>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final _billController = TextEditingController();
   final _customTipController = TextEditingController();
@@ -77,6 +103,7 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
   final List<Map<String, dynamic>> _history = [];
   late AnimationController _controller;
   late Animation<double> _animation;
+  bool _isTipChipSelected = true; // New flag to track tip chip selection
 
   @override
   void initState() {
@@ -103,11 +130,14 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
 
   void _applyCustomTip() {
     double customPercent = double.tryParse(_customTipController.text) ?? 0.0;
-    if (customPercent > 0) {
+    if (customPercent >= 0 && customPercent <= 100) {
       setState(() {
         _tipPercentage = customPercent / 100;
+        _isTipChipSelected = false; // Custom tip applied, so chip is not selected
         _calculateTip();
       });
+    } else {
+      showCustomSnackBar(context, 'Enter a valid tip percentage (0-100)', true);
     }
   }
 
@@ -118,6 +148,7 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
     setState(() {
       _tipPercentage = 0.15;
       _splitCount = 1;
+      _isTipChipSelected = true; // Reset to default chip selection
     });
   }
 
@@ -125,19 +156,17 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
     double bill = double.tryParse(_billController.text) ?? 0.0;
     double tip = bill * _tipPercentage;
     double totalPerPerson = (bill + tip) / _splitCount;
+
     if (formKey.currentState!.validate()) {
       setState(() {
         showCustomSnackBar(context, 'Tip Saved!', false);
-        _history.insert(
-          0,
-          {
-            'bill': bill,
-            'tip': tip,
-            'total': totalPerPerson,
-            'currency': _currency,
-            'date': DateTime.now(),
-          },
-        );
+        _history.insert(0, {
+          'bill': bill,
+          'tip': tip,
+          'total': totalPerPerson,
+          'currency': _currency,
+          'date': DateTime.now(),
+        });
       });
     } else {
       showCustomSnackBar(context, 'Please Fill Required Fields', true);
@@ -186,10 +215,15 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
             onPressed: () {
               Navigator.push(
                 context,
-                CupertinoPageRoute(builder: (ctx) => HistoryScreen(history: _history)),
+                CupertinoPageRoute(
+                  builder: (ctx) => HistoryScreen(history: _history),
+                ),
               );
             },
-            icon: const Icon(Icons.view_agenda_outlined, color: MyColors.blackColor),
+            icon: const Icon(
+              Icons.view_agenda_outlined,
+              color: MyColors.blackColor,
+            ),
           ),
         ],
       ),
@@ -209,20 +243,22 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Space.hSpace20,
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal:  12.0),
                   child: Column(
                     children: [
                       const Text(
-                        'Hey Celeste, let\'s split the bill!',
+                        'You dine, we divide!',
                         style: TextStyle(
                           fontSize: 16,
                           color: MyColors.darkGreyColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      Space.hSpace15,
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: CustomTextFormField(
@@ -232,7 +268,7 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                               keyboardType: TextInputType.number,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter a bill amount';
+                                  return 'Please Enter Bill Amount';
                                 }
                                 final bill = double.tryParse(value);
                                 if (bill == null || bill <= 0) {
@@ -245,17 +281,22 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                               },
                             ),
                           ),
-                          const SizedBox(width: 8),
+                           Space.wSpace5,
                           Container(
                             height: 47,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(width: 2, color: MyColors.primaryColor),
+                              border: Border.all(
+                                width: 2,
+                                color: MyColors.primaryColor,
+                              ),
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
                                 value: _currency,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
                                 items: [
                                   'USD',
                                   'EUR',
@@ -266,7 +307,7 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                                   'AUD',
                                   'CHF',
                                   'CNY',
-                                  'SGD'
+                                  'SGD',
                                 ].map((String value) {
                                   return DropdownMenuItem<String>(
                                     value: value,
@@ -284,11 +325,20 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                                             'CHF': 'CHF',
                                             'CNY': '¥',
                                             'SGD': 'S\$',
-                                          }[value] ?? value,
-                                          style: const TextStyle(fontSize: 16, color: MyColors.primaryColor),
+                                          }[value] ??
+                                              value,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: MyColors.primaryColor,
+                                          ),
                                         ),
                                         const SizedBox(width: 8),
-                                        Text(value, style: const TextStyle(color: MyColors.primaryColor)),
+                                        Text(
+                                          value,
+                                          style: const TextStyle(
+                                            color: MyColors.primaryColor,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   );
@@ -299,9 +349,15 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                                     _calculateTip();
                                   });
                                 },
-                                style: const TextStyle(color: MyColors.blackColor, fontSize: 16),
+                                style: const TextStyle(
+                                  color: MyColors.blackColor,
+                                  fontSize: 16,
+                                ),
                                 dropdownColor: MyColors.whiteColor,
-                                icon: const Icon(Icons.arrow_drop_down, color: MyColors.primaryColor),
+                                icon: const Icon(
+                                  Icons.arrow_drop_down,
+                                  color: MyColors.primaryColor,
+                                ),
                               ),
                             ),
                           ),
@@ -310,15 +366,19 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+           
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Select Tip Percentage',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: MyColors.blackColor),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: MyColors.blackColor,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -329,21 +389,28 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                             selected: _tipPercentage == percent,
                             onSelected: (selected) {
                               setState(() {
-                                _tipPercentage = selected ? percent : _tipPercentage;
-                                _customTipController.clear();
-                                formKey.currentState?.validate(); // Re-validate form
-                                _calculateTip();
+                                if (selected) {
+                                  _tipPercentage = percent;
+                                  _isTipChipSelected = true; // Chip selected
+                                  _customTipController.clear();
+                                  formKey.currentState?.validate();
+                                  _calculateTip();
+                                }
                               });
                             },
                             selectedColor: MyColors.primaryColor,
                             backgroundColor: MyColors.lightGreyColor,
                             labelStyle: TextStyle(
-                                color: _tipPercentage == percent ? MyColors.whiteColor : MyColors.blackColor),
+                              color: _tipPercentage == percent
+                                  ? MyColors.whiteColor
+                                  : MyColors.blackColor,
+                            ),
                           );
                         }).toList(),
                       ),
-                      const SizedBox(height: 8),
+                      Space.hSpace10,
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: CustomTextFormField(
@@ -352,8 +419,13 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                               prefixIcon: Icons.percent,
                               keyboardType: TextInputType.number,
                               validator: (value) {
+                                // Skip validation if a tip chip is selected
+                                if (_isTipChipSelected) {
+                                  return null;
+                                }
+                                // Validate only if custom tip is used
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter a tip percentage';
+                                  return 'Enter a tip percentage';
                                 }
                                 final tip = double.tryParse(value);
                                 if (tip == null || tip < 0 || tip > 100) {
@@ -363,24 +435,32 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                               },
                               onChanged: (value) {
                                 setState(() {
-                                  formKey.currentState?.validate(); // Re-validate form
+                                  formKey.currentState?.validate();
                                 });
                               },
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          Space.wSpace5,
                           ElevatedButton(
                             onPressed: _applyCustomTip,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: MyColors.primaryColor,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                            child: const Text('Apply', style: TextStyle(color: MyColors.whiteColor)),
+                            child: const Text(
+                              'Apply',
+                              style: TextStyle(color: MyColors.whiteColor),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                     
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -390,8 +470,12 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                               builder: (context, child) {
                                 return LinearProgressIndicator(
                                   value: _tipPercentage,
-                                  backgroundColor: MyColors.primaryColor.withOpacity(0.3),
-                                  valueColor: const AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
+                                  backgroundColor: MyColors.primaryColor
+                                      .withOpacity(0.3),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                    MyColors.primaryColor,
+                                  ),
                                   minHeight: 10,
                                   borderRadius: BorderRadius.circular(8),
                                 );
@@ -400,7 +484,10 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                           ),
                           const SizedBox(width: 16),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: MyColors.whiteColor,
                               borderRadius: BorderRadius.circular(8),
@@ -422,13 +509,17 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                 ),
                 const SizedBox(height: 16),
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Your Results',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: MyColors.blackColor),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: MyColors.blackColor,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Container(
@@ -444,7 +535,10 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                               children: [
                                 const Text(
                                   'Tip Amount',
-                                  style: TextStyle(fontSize: 16, color: MyColors.blackColor),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: MyColors.blackColor,
+                                  ),
                                 ),
                                 Text(
                                   '$_currency ${tip.toStringAsFixed(2)}',
@@ -462,7 +556,10 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                               children: [
                                 const Text(
                                   'Total per Person',
-                                  style: TextStyle(fontSize: 16, color: MyColors.blackColor),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: MyColors.blackColor,
+                                  ),
                                 ),
                                 Text(
                                   '$_currency ${totalPerPerson.toStringAsFixed(2)}',
@@ -484,12 +581,11 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                         prefixIcon: Icons.person,
                         keyboardType: TextInputType.number,
                         validator: (value) {
-                          final val = int.tryParse(value ?? '');
-                          if (val == null || val < 1) {
-                            return 'Enter a number of 1 or more';
-                          }
-                          if (val > 100) {
-                            return 'Enter a number under 100';
+                          if (value != null && value.isNotEmpty) {
+                            final val = int.tryParse(value);
+                            if (val == null || val <= 0) {
+                              return 'Enter a valid number';
+                            }
                           }
                           return null;
                         },
@@ -497,7 +593,7 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                           setState(() {
                             _splitCount = int.tryParse(value) ?? 1;
                             if (_splitCount < 1) _splitCount = 1;
-                            formKey.currentState?.validate(); // Re-validate form
+                            formKey.currentState?.validate();
                             _calculateTip();
                           });
                         },
@@ -512,23 +608,42 @@ class _TipCalculatorScreenState extends State<TipCalculatorScreen> with SingleTi
                     ElevatedButton(
                       onPressed: _reset,
                       style: ElevatedButton.styleFrom(
-                        side: const BorderSide(width: 2, color: MyColors.primaryColor),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        side: const BorderSide(
+                          width: 2,
+                          color: MyColors.primaryColor,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         fixedSize: Size(ScreenSize.width * 0.4, 45),
                         backgroundColor: MyColors.whiteColor,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 20,
+                        ),
                       ),
-                      child: const Text('Reset', style: TextStyle(color: MyColors.blackColor)),
+                      child: const Text(
+                        'Reset',
+                        style: TextStyle(color: MyColors.blackColor),
+                      ),
                     ),
                     ElevatedButton(
                       onPressed: _saveHistory,
                       style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         fixedSize: Size(ScreenSize.width * 0.4, 45),
                         backgroundColor: MyColors.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 20,
+                        ),
                       ),
-                      child: const Text('Save', style: TextStyle(color: MyColors.whiteColor)),
+                      child: const Text(
+                        'Save',
+                        style: TextStyle(color: MyColors.whiteColor),
+                      ),
                     ),
                   ],
                 ),

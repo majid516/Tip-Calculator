@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tip_calculator/core/constants/app_theme/app_theme.dart';
 import 'package:tip_calculator/core/constants/screen_size/screen_size.dart';
-import 'package:tip_calculator/features/home/view/screens/home_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:tip_calculator/core/constants/app_theme/app_theme.dart';
-import 'package:tip_calculator/core/constants/screen_size/screen_size.dart';
 
 typedef HistoryType = List<Map<String, dynamic>>;
 
@@ -43,67 +39,66 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
     return Scaffold(
       backgroundColor: MyColors.appBarThemeColor,
       appBar: AppBar(
-  toolbarHeight: 80,
-  backgroundColor: MyColors.appBarThemeColor,
-  scrolledUnderElevation: 0,
-  title: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        'Recaps',
-        style: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: MyColors.blackColor,
-        ),
-      ),
-      SizedBox(
-        width: 250, // Adjust width based on screen size
-        child: Text(
-          'All your past calculations at a glance',
-          style: TextStyle(
-            fontSize: 16,
-            color: MyColors.darkGreyColor,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    ],
-  ),
-  automaticallyImplyLeading: false,
-  centerTitle: false,
-  leadingWidth: 30,
-  leading: IconButton(
-    onPressed: () {
-      Navigator.pop(context);
-    },
-    icon: Icon(Icons.arrow_back_ios_new, color: MyColors.blackColor),
-  ),
-  actionsPadding: EdgeInsets.only(right: 10),
-  actions: [
-    PopupMenuButton<String>(
-      color: MyColors.whiteColor,
-      icon: Icon(Icons.tune_rounded, color: MyColors.blackColor, size: 24),
-      padding: EdgeInsets.zero, // Minimize padding
-      onSelected: (String newValue) {
-        setState(() {
-          _sortBy = newValue; // Ensure _sortBy is defined in state
-          _sortHistory();
-        });
-      },
-      itemBuilder: (BuildContext context) => ['Newest', 'Oldest']
-          .map((String value) => PopupMenuItem<String>(
-                value: value,
-                child: Text(
-                  'Sort by: $value',
-                  style: TextStyle(color: MyColors.blackColor),
+        toolbarHeight: 80,
+        backgroundColor: MyColors.appBarThemeColor,
+        scrolledUnderElevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Recaps',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: MyColors.blackColor,
+              ),
+            ),
+            SizedBox(
+              width: 250,
+              child: Text(
+                'All your past calculations at a glance',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: MyColors.blackColor,
                 ),
-              ))
-          .toList(),
-    ),
-  ],
-),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        automaticallyImplyLeading: false,
+        centerTitle: false,
+        leadingWidth: 30,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.arrow_back_ios_new, color: MyColors.blackColor, size: 20),
+        ),
+        actionsPadding: EdgeInsets.only(right: 10),
+        actions: [
+          PopupMenuButton<String>(
+            color: MyColors.whiteColor,
+            icon: Icon(Icons.tune_rounded, color: MyColors.blackColor, size: 24),
+            padding: EdgeInsets.zero,
+            onSelected: (String newValue) {
+              setState(() {
+                _sortBy = newValue;
+                _sortHistory();
+              });
+            },
+            itemBuilder: (BuildContext context) => ['Newest', 'Oldest']
+                .map((String value) => PopupMenuItem<String>(
+                      value: value,
+                      child: Text(
+                        'Sort by: $value',
+                        style: TextStyle(color: MyColors.blackColor),
+                      ),
+                    ))
+                .toList(),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -175,10 +170,6 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
 
   Widget _buildHistoryCard(Map<String, dynamic> entry, int index) {
     final date = entry['date'] as DateTime;
-    final minutesAgo = DateTime.now().difference(date).inMinutes;
-    final timeText = minutesAgo < 60
-        ? '$minutesAgo min ago'
-        : '${(minutesAgo / 60).floor()} hr ago';
 
     return AnimatedContainer(
       duration: Duration(milliseconds: 500 + (index * 100)),
@@ -189,11 +180,12 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         0,
       ),
       child: Card(
+        elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Container(
           width: ScreenSize.width,
           decoration: BoxDecoration(
-            color: MyColors.secondaryColor,
+            color: MyColors.ternaryColor,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Stack(
@@ -203,32 +195,31 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                   
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${entry['currency']}${entry['total'].toStringAsFixed(2)} / person',
+                            '${entry['currency']} ${entry['total'].toStringAsFixed(2)} / person',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: MyColors.blackColor,
+                              color: MyColors.primaryColor,
                             ),
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Bill: ${entry['currency']}${entry['bill'].toStringAsFixed(2)}',
+                            'Bill : ${entry['currency']} ${entry['bill'].toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: 14,
-                              color: MyColors.darkGreyColor,
+                              color: MyColors.blackColor,
                             ),
                           ),
                           Text(
-                            'Tip: ${entry['currency']}${entry['tip'].toStringAsFixed(2)}',
+                            'Tip : ${entry['currency']} ${entry['tip'].toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: 14,
-                              color: MyColors.darkGreyColor,
+                              color: MyColors.blackColor,
                             ),
                           ),
                         ],
@@ -240,12 +231,32 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
               Positioned(
                 top: 12,
                 right: 12,
-                child: Text(
-                  timeText,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: MyColors.darkGreyColor,
-                  ),
+                child: StreamBuilder<DateTime>(
+                  stream: Stream.periodic(Duration(seconds: 1), (_) => DateTime.now()),
+                  builder: (context, snapshot) {
+                    final now = snapshot.data ?? DateTime.now();
+                    final difference = now.difference(date);
+                    final seconds = difference.inSeconds;
+                    final minutes = difference.inMinutes;
+                    final hours = difference.inHours;
+
+                    String timeText;
+                    if (seconds < 60) {
+                      timeText = '$seconds sec ago';
+                    } else if (minutes < 60) {
+                      timeText = '$minutes min ago';
+                    } else {
+                      timeText = '$hours hr ago';
+                    }
+
+                    return Text(
+                      timeText,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: MyColors.darkGreyColor,
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
