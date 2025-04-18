@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:tip_calculator/core/constants/app_theme/app_theme.dart';
 import 'package:tip_calculator/core/constants/screen_size/screen_size.dart';
-import 'package:tip_calculator/main.dart';
+import 'package:tip_calculator/core/constants/spaces/space.dart';
+import 'package:tip_calculator/features/home/view/screens/home_screen.dart';
+import 'package:tip_calculator/features/landing/view/widgets/hollow_star_diamond_painter.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -19,6 +22,7 @@ class _LandingScreenState extends State<LandingScreen>
 
   late Animation<double> _rotationAnimation;
   late Animation<double> _painterAnimation;
+  double _currentRotation = 0.0; // Track current rotation angle
 
   List<String> textLines = [
     'Goal-setting',
@@ -31,7 +35,7 @@ class _LandingScreenState extends State<LandingScreen>
     'Productivity',
     'Time Manager',
     'Perfomance',
-    'Focus',
+    'Focus.',
   ];
   int currentTextIndex = -1;
 
@@ -42,64 +46,61 @@ class _LandingScreenState extends State<LandingScreen>
     // Text Animation Controller
     _positionController = AnimationController(
       vsync: this,
-      duration: Duration(
-        milliseconds: textLines.length * 300,
-      ), // 800ms per text
+      duration: Duration(milliseconds: textLines.length * 150),
     );
 
-    // Rotation Controller (Independent from text)
+    // Rotation Controller (complete within 0.8 seconds)
     _rotationController = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 3),
+      duration: Duration(milliseconds: 800),
     );
 
     // Text fade in Controller
     _textController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 300),
+      duration: Duration(milliseconds: 200),
     );
 
-    // Painter movement Controller (Independent from text)
+    // Painter movement Controller
     _painterController = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 3),
+      duration: Duration(milliseconds: 1500),
     );
 
-    _rotationAnimation = Tween<double>(begin: 0, end: 2 * 3.14159).animate(
-      CurvedAnimation(parent: _rotationController, curve: Curves.linear),
+    _rotationAnimation = Tween<double>(begin: 0, end: 1.5 * 3.14159).animate(
+      CurvedAnimation(parent: _rotationController, curve: Curves.easeOut),
     );
 
-    // Independent painter movement animation
     _painterAnimation = Tween<double>(
-      begin: -200,
+      begin: -400,
       end: MediaQuery.of(context).size.height * 0.33,
     ).animate(
-      CurvedAnimation(parent: _painterController, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _painterController, curve: Curves.linear),
     );
 
     _positionController.addListener(() {
-      // Calculate which text should be active based on position controller
       double progress = _positionController.value;
       int newIndex = (progress * textLines.length).floor();
-
-      // Ensure the last text shows properly
       if (newIndex == textLines.length && progress < 1.0) {
         newIndex = textLines.length - 1;
       }
-
       if (newIndex != currentTextIndex && newIndex < textLines.length) {
         setState(() {
           currentTextIndex = newIndex;
         });
-        // Trigger text animation
         _textController.reset();
         _textController.forward();
+      }
+
+      // Stop rotation animation after 0.5 seconds of position animation
+      double elapsedTime = _positionController.value * _positionController.duration!.inMilliseconds;
+      if (elapsedTime >= 500 && _rotationController.isAnimating) {
+        _smoothlyStopRotation(); // Call smooth stop
       }
     });
 
     _positionController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        // Keep the last text visible
         setState(() {
           currentTextIndex = textLines.length - 1;
         });
@@ -110,17 +111,60 @@ class _LandingScreenState extends State<LandingScreen>
       }
     });
 
+    // Update rotation smoothly
+    _rotationController.addListener(() {
+      setState(() {
+        _currentRotation = _rotationAnimation.value;
+      });
+    });
+
     _painterController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _painterController.stop();
-        _rotationController.stop();
       }
     });
 
     // Start the animations
     _positionController.forward();
-    _rotationController.repeat();
+    _rotationController.forward();
     _painterController.forward();
+  }
+
+  // Modified method to smoothly stop the rotation, continue in same direction, and end at 0 angle
+  void _smoothlyStopRotation() {
+    if (_rotationController.isAnimating) {
+      // Get the current rotation value
+      double currentValue = _rotationAnimation.value;
+
+      // Stop the current animation
+      _rotationController.stop();
+
+      // Calculate the target angle in the same direction (clockwise)
+      const double twoPi = 1 * 3.14159;
+      // Find the next angle equivalent to 0 modulo 2π, continuing clockwise
+      double targetValue = currentValue + (twoPi - (currentValue % twoPi));
+
+      // Create a new animation to decelerate to the target angle
+      _rotationAnimation = Tween<double>(
+        begin: currentValue,
+        end: targetValue, // End at angle equivalent to 0
+      ).animate(
+        CurvedAnimation(
+          parent: _rotationController,
+          curve: Curves.decelerate,
+        ),
+      );
+
+      // Reset and animate to the final position over a short duration
+      _rotationController
+        ..reset()
+        ..duration = Duration(milliseconds: 600) // Duration for smooth stop
+        ..forward().then((_) {
+          setState(() {
+            _currentRotation = 0.0; // Reset to 0 after reaching target
+          });
+        });
+    }
   }
 
   @override
@@ -136,9 +180,7 @@ class _LandingScreenState extends State<LandingScreen>
     if (_positionController.isAnimating) {
       _positionController.stop();
     }
-    if (_rotationController.isAnimating) {
-      _rotationController.stop();
-    }
+    _smoothlyStopRotation(); // Use smooth stop for rotation
     if (_textController.isAnimating) {
       _textController.stop();
     }
@@ -149,18 +191,33 @@ class _LandingScreenState extends State<LandingScreen>
 
   @override
   Widget build(BuildContext context) {
-    const double topPadding = 70.0; // Top padding for the text container
-    const double leftPadding = 10.0; // Left padding for the text container
-    const double textHeight = 53.0; // Height for each text item
+    const double topPadding = 70.0;
+    const double leftPadding = 5.0;
+    const double textHeight = 53.0;
 
     return Scaffold(
       backgroundColor: MyColors.primaryColor,
       body: SingleChildScrollView(
-        child: LandingScreenBodyComponents(stopAnimation: stopAnimation,topPadding: topPadding, leftPadding: leftPadding, textLines: textLines, currentTextIndex: currentTextIndex, textHeight: textHeight, positionController: _positionController, rotationController: _rotationController, textController: _textController, painterController: _painterController, painterAnimation: _painterAnimation, rotationAnimation: _rotationAnimation),
+        child: LandingScreenBodyComponents(
+          stopAnimation: stopAnimation,
+          topPadding: topPadding,
+          leftPadding: leftPadding,
+          textLines: textLines,
+          currentTextIndex: currentTextIndex,
+          textHeight: textHeight,
+          positionController: _positionController,
+          rotationController: _rotationController,
+          textController: _textController,
+          painterController: _painterController,
+          painterAnimation: _painterAnimation,
+          rotationAnimation: _rotationAnimation,
+          currentRotation: _currentRotation,
+        ),
       ),
     );
   }
 }
+
 
 class LandingScreenBodyComponents extends StatelessWidget {
   const LandingScreenBodyComponents({
@@ -175,14 +232,21 @@ class LandingScreenBodyComponents extends StatelessWidget {
     required AnimationController textController,
     required AnimationController painterController,
     required Animation<double> painterAnimation,
-    required Animation<double> rotationAnimation, required this.stopAnimation,
-  }) : _positionController = positionController, _rotationController = rotationController, _textController = textController, _painterController = painterController, _painterAnimation = painterAnimation, _rotationAnimation = rotationAnimation;
+    required Animation<double> rotationAnimation,
+    required this.stopAnimation, required this.currentRotation,
+  }) : _positionController = positionController,
+       _rotationController = rotationController,
+       _textController = textController,
+       _painterController = painterController,
+       _painterAnimation = painterAnimation,
+       _rotationAnimation = rotationAnimation;
   final VoidCallback stopAnimation;
   final double topPadding;
   final double leftPadding;
   final List<String> textLines;
   final int currentTextIndex;
   final double textHeight;
+  final double currentRotation;
   final AnimationController _positionController;
   final AnimationController _rotationController;
   final AnimationController _textController;
@@ -198,22 +262,37 @@ class LandingScreenBodyComponents extends StatelessWidget {
       child: Stack(
         children: [
           Padding(
-            padding:  EdgeInsets.only(
-              top: topPadding,
-              left: leftPadding,
-            ),
+            padding: EdgeInsets.only(top: topPadding, left: leftPadding),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (int i = 0; i < textLines.length; i++)
-                  AnimatedOpacityTextWidget(currentTextIndex: currentTextIndex, i: i, textHeight: textHeight, textLines: textLines),
+                  AnimatedOpacityTextWidget(
+                    currentTextIndex: currentTextIndex,
+                    i: i,
+                    textHeight: textHeight,
+                    textLines: textLines,
+                  ),
               ],
             ),
           ),
-          AnimationWidget(positionController: _positionController, rotationController: _rotationController, textController: _textController, painterController: _painterController, currentTextIndex: currentTextIndex, painterAnimation: _painterAnimation, rotationAnimation: _rotationAnimation, textLines: textLines, topPadding: topPadding, textHeight: textHeight, leftPadding: leftPadding),
+          AnimationWidget(
+            positionController: _positionController,
+            rotationController: _rotationController,
+            textController: _textController,
+            painterController: _painterController,
+            currentTextIndex: currentTextIndex,
+            painterAnimation: _painterAnimation,
+            rotationAnimation: _rotationAnimation,
+            textLines: textLines,
+            topPadding: topPadding,
+            textHeight: textHeight,
+            leftPadding: leftPadding,
+            currentRotation: currentRotation,
+          ),
           // Time-manager text and button at the bottom
-         CustomGetStartedButton(stopAnimation: stopAnimation,),
+          CustomGetStartedButton(stopAnimation: stopAnimation),
         ],
       ),
     );
@@ -237,7 +316,7 @@ class AnimatedOpacityTextWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedOpacity(
-      opacity: currentTextIndex == i ? 0.0 : 0.5,
+      opacity: currentTextIndex == i ? 0.0 : 0.25,
       duration: Duration(milliseconds: 300),
       child: SizedBox(
         height: textHeight,
@@ -245,12 +324,14 @@ class AnimatedOpacityTextWidget extends StatelessWidget {
           alignment: Alignment.topLeft,
           fit: BoxFit.scaleDown,
           child: Text(
+            maxLines: 1,
             textLines[i],
             style: TextStyle(
-              height: 1,
+              height: 0.8,
               color: MyColors.blackColor,
-              fontSize: 53,
-              fontWeight: FontWeight.bold,
+              fontSize: 60,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -4
             ),
           ),
         ),
@@ -272,8 +353,12 @@ class AnimationWidget extends StatelessWidget {
     required this.textLines,
     required this.topPadding,
     required this.textHeight,
-    required this.leftPadding,
-  }) : _positionController = positionController, _rotationController = rotationController, _textController = textController, _painterController = painterController, _painterAnimation = painterAnimation, _rotationAnimation = rotationAnimation;
+    required this.leftPadding, required this.currentRotation,
+  }) : _positionController = positionController,
+       _rotationController = rotationController,
+       _textController = textController,
+       _painterController = painterController,
+       _painterAnimation = painterAnimation;
 
   final AnimationController _positionController;
   final AnimationController _rotationController;
@@ -281,9 +366,10 @@ class AnimationWidget extends StatelessWidget {
   final AnimationController _painterController;
   final int currentTextIndex;
   final Animation<double> _painterAnimation;
-  final Animation<double> _rotationAnimation;
+ 
   final List<String> textLines;
   final double topPadding;
+  final double currentRotation;
   final double textHeight;
   final double leftPadding;
 
@@ -301,15 +387,24 @@ class AnimationWidget extends StatelessWidget {
             currentTextIndex >= 0
                 ? Curves.easeIn.transform(_textController.value)
                 : 0;
-              
+
         return Stack(
           children: [
             // StarDiamondPainter animation
-            RotatingPainterWidget(painterAnimation: _painterAnimation, rotationAnimation: _rotationAnimation),
+            RotatingPainterWidget(
+              painterAnimation: _painterAnimation,
+              currentRotation: currentRotation,
+            ),
             // Text animation
-            if (currentTextIndex >= 0 &&
-                currentTextIndex < textLines.length)
-              PositionedTextWidget(topPadding: topPadding, currentTextIndex: currentTextIndex, textHeight: textHeight, leftPadding: leftPadding, textOpacity: textOpacity, textLines: textLines),
+            if (currentTextIndex >= 0 && currentTextIndex < textLines.length)
+              PositionedTextWidget(
+                topPadding: topPadding,
+                currentTextIndex: currentTextIndex,
+                textHeight: textHeight,
+                leftPadding: leftPadding,
+                textOpacity: textOpacity,
+                textLines: textLines,
+              ),
           ],
         );
       },
@@ -321,29 +416,33 @@ class RotatingPainterWidget extends StatelessWidget {
   const RotatingPainterWidget({
     super.key,
     required Animation<double> painterAnimation,
-    required Animation<double> rotationAnimation,
-  }) : _painterAnimation = painterAnimation, _rotationAnimation = rotationAnimation;
+    required double currentRotation, // Use current rotation value
+  })  : _painterAnimation = painterAnimation,
+        _currentRotation = currentRotation;
 
   final Animation<double> _painterAnimation;
-  final Animation<double> _rotationAnimation;
+  final double _currentRotation;
 
   @override
   Widget build(BuildContext context) {
-    return Transform.translate(
-      offset: Offset(-100, _painterAnimation.value),
-      child: Transform.rotate(
-        angle: _rotationAnimation.value,
-        child: UnconstrainedBox(
-          child: CustomPaint(
-            painter: HollowStarDiamondPainter(),
-            size: Size(402, 660),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: -200,
+          top: _painterAnimation.value,
+          child: Transform.rotate(
+            angle: _currentRotation, // Use the current rotation value
+            child: CustomPaint(
+              painter: HollowStarDiamondPainter(),
+              size: Size(600, 660),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
-
 class PositionedTextWidget extends StatelessWidget {
   const PositionedTextWidget({
     super.key,
@@ -376,12 +475,16 @@ class PositionedTextWidget extends StatelessWidget {
             alignment: Alignment.topLeft,
             fit: BoxFit.scaleDown,
             child: Text(
+              maxLines: 1,
+              
               textLines[currentTextIndex],
               style: TextStyle(
+                
                 color: MyColors.blackColor,
-                height: 1,
-                fontSize: 53,
-                fontWeight: FontWeight.bold,
+                height: 0.8,
+                fontSize: 60,
+                letterSpacing: -4,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -392,41 +495,46 @@ class PositionedTextWidget extends StatelessWidget {
 }
 
 class CustomGetStartedButton extends StatelessWidget {
-  final VoidCallback stopAnimation;
-  const CustomGetStartedButton({
-    super.key, required this.stopAnimation,
-  });
+  final void Function() stopAnimation;
+  const CustomGetStartedButton({super.key, required this.stopAnimation});
 
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      bottom: 70,
+      bottom: 60,
       left: 0,
       right: 0,
       child: Center(
         child: GestureDetector(
-         onTap: stopAnimation,
+          onTap: () {
+            stopAnimation();
+            Navigator.pushReplacement(
+              context,
+              CupertinoPageRoute(builder: (ctx) => TipCalculatorScreen()),
+            );
+          },
           child: Container(
-            width: ScreenSize.width*0.8,
-            height: 60,
+            width: ScreenSize.width * 0.95,
+            height: 80,
             decoration: BoxDecoration(
               color: Colors.transparent,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: Colors.black, width: 2),
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(color: Colors.black, width: 1),
             ),
             child: Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  Space.wSpace50,
                   Text(
                     'Get Started',
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(width: 10),
+                  Space.wSpace50,
                   Icon(Icons.arrow_forward_ios, size: 20),
                 ],
               ),

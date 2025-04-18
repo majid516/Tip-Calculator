@@ -8,6 +8,7 @@ class MyColors {
   static const Color primaryColor = Color.fromRGBO(248, 128, 109,1);
   static const Color secondaryColor = Color.fromRGBO(250, 214, 142,1);
   static const Color ternaryColor = Color.fromRGBO(253, 229, 182,1);
-  static const Color lightGreyColor = Color(0xFFAFAFAF);
-  static const Color darkGreyColor = Color(0xFF818181);
+  static const Color appBarThemeColor = Color.fromRGBO(231, 230, 219,1);
+  static const Color lightGreyColor = Color.fromARGB(255, 239, 239, 239);
+  static const Color darkGreyColor = Color.fromARGB(255, 121, 121, 121);
 }
