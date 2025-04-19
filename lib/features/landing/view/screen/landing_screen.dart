@@ -11,14 +11,14 @@ class LandingScreen extends StatefulWidget {
 
 class _LandingScreenState extends State<LandingScreen>
     with TickerProviderStateMixin {
-  AnimationController? _positionController;
-  AnimationController? _rotationController;
-  AnimationController? _textController;
-  AnimationController? _painterController;
+  late AnimationController _positionController;
+  late AnimationController _rotationController;
+  late AnimationController _textController;
+  late AnimationController _painterController;
 
-  Animation<double>? _rotationAnimation;
-  Animation<double>? _painterAnimation;
-  double _currentRotation = 0.0;
+  late Animation<double> _rotationAnimation;
+  late Animation<double> _painterAnimation;
+  double _currentRotation = 0.0; 
 
   List<String> textLines = [
     'Goal-setting',
@@ -38,10 +38,8 @@ class _LandingScreenState extends State<LandingScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_painterController == null) {
-      // Only initialize if controllers are not already set
-      functionsUnderDidChangeDependecies();
-    }
+     functionsUnderDidChangeDependecies();
+   
   }
 
   void functionsUnderDidChangeDependecies() {
@@ -49,35 +47,35 @@ class _LandingScreenState extends State<LandingScreen>
       vsync: this,
       duration: Duration(milliseconds: textLines.length * 150),
     );
-
+    
     _rotationController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 800),
     );
-
+    
     _textController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 200),
     );
-
+    
     _painterController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 1500),
     );
-
+    
     _rotationAnimation = Tween<double>(begin: 0, end: 1 * 3.14159).animate(
-      CurvedAnimation(parent: _rotationController!, curve: Curves.easeOut),
+      CurvedAnimation(parent: _rotationController, curve: Curves.easeOut),
     );
-
+    
     _painterAnimation = Tween<double>(
       begin: -400,
       end: MediaQuery.of(context).size.height * 0.33,
     ).animate(
-      CurvedAnimation(parent: _painterController!, curve: Curves.linear),
+      CurvedAnimation(parent: _painterController, curve: Curves.linear),
     );
-
-    _positionController!.addListener(() {
-      double progress = _positionController!.value;
+    
+    _positionController.addListener(() {
+      double progress = _positionController.value;
       int newIndex = (progress * textLines.length).floor();
       if (newIndex == textLines.length && progress < 1.0) {
         newIndex = textLines.length - 1;
@@ -86,72 +84,67 @@ class _LandingScreenState extends State<LandingScreen>
         setState(() {
           currentTextIndex = newIndex;
         });
-        _textController!.reset();
-        _textController!.forward();
+        _textController.reset();
+        _textController.forward();
       }
-
+    
       double elapsedTime =
-          _positionController!.value * _positionController!.duration!.inMilliseconds;
-      if (elapsedTime >= 500 && _rotationController!.isAnimating) {
-        _smoothlyStopRotation();
+          _positionController.value *
+          _positionController.duration!.inMilliseconds;
+      if (elapsedTime >= 500 && _rotationController.isAnimating) {
+        _smoothlyStopRotation(); 
       }
     });
-
-    _positionController!.addStatusListener((status) {
+    
+    _positionController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         setState(() {
           currentTextIndex = textLines.length - 1;
         });
-        if (!_textController!.isAnimating) {
-          _textController!.forward();
+        if (!_textController.isAnimating) {
+          _textController.forward();
         }
-        _positionController!.stop();
+        _positionController.stop();
       }
     });
-
-    _rotationController!.addListener(() {
+    
+    
+    _rotationController.addListener(() {
       setState(() {
-        _currentRotation = _rotationAnimation!.value;
+        _currentRotation = _rotationAnimation.value;
       });
     });
-
-    _painterController!.addStatusListener((status) {
+    
+    _painterController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        _painterController!.stop();
+        _painterController.stop();
       }
     });
-
-    // Only start animations if they haven't started yet
-    if (!_positionController!.isAnimating) {
-      _positionController!.forward();
-    }
-    if (!_rotationController!.isAnimating) {
-      _rotationController!.forward();
-    }
-    if (!_painterController!.isAnimating && _painterController!.status != AnimationStatus.completed) {
-      _painterController!.forward();
-    }
+    
+    _positionController.forward();
+    _rotationController.forward();
+    _painterController.forward();
   }
 
   void _smoothlyStopRotation() {
-    if (_rotationController!.isAnimating) {
-      double currentValue = _rotationAnimation!.value;
+    if (_rotationController.isAnimating) {
+      double currentValue = _rotationAnimation.value;
 
-      _rotationController!.stop();
+      _rotationController.stop();
 
       const double twoPi = 1 * 3.14159;
       double targetValue = currentValue + (twoPi - (currentValue % twoPi));
 
       _rotationAnimation = Tween<double>(
         begin: currentValue,
-        end: targetValue,
+        end: targetValue, 
       ).animate(
-        CurvedAnimation(parent: _rotationController!, curve: Curves.decelerate),
+        CurvedAnimation(parent: _rotationController, curve: Curves.decelerate),
       );
 
-      _rotationController!
+      _rotationController
         ..reset()
-        ..duration = Duration(milliseconds: 400)
+        ..duration = Duration(milliseconds: 400) 
         ..forward().then((_) {
           setState(() {
             _currentRotation = 0.0;
@@ -162,23 +155,25 @@ class _LandingScreenState extends State<LandingScreen>
 
   @override
   void dispose() {
-    _positionController?.dispose();
-    _rotationController?.dispose();
-    _textController?.dispose();
-    _painterController?.dispose();
+
+    _positionController.dispose();
+    _rotationController.dispose();
+    _textController.dispose();
+    _painterController.dispose();
     super.dispose();
   }
 
   void stopAnimation() {
-    if (_positionController!.isAnimating) {
-      _positionController!.stop();
+    if (_positionController.isAnimating) {
+      _positionController.stop();
     }
     _smoothlyStopRotation();
-    if (_textController!.isAnimating) {
-      _textController!.stop();
+    if (_textController.isAnimating) {
+      _textController.stop();
     }
-    if (_painterController!.isAnimating) {
-      _painterController!.stop();
+
+    if (_painterController.isAnimating) {
+      _painterController.stop();
     }
   }
 
@@ -198,12 +193,12 @@ class _LandingScreenState extends State<LandingScreen>
           textLines: textLines,
           currentTextIndex: currentTextIndex,
           textHeight: textHeight,
-          positionController: _positionController!,
-          rotationController: _rotationController!,
-          textController: _textController!,
-          painterController: _painterController!,
-          painterAnimation: _painterAnimation!,
-          rotationAnimation: _rotationAnimation!,
+          positionController: _positionController,
+          rotationController: _rotationController,
+          textController: _textController,
+          painterController: _painterController,
+          painterAnimation: _painterAnimation,
+          rotationAnimation: _rotationAnimation,
           currentRotation: _currentRotation,
         ),
       ),
