@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tip_calculator/core/constants/app_theme/app_theme.dart';
+import 'package:tip_calculator/core/constants/app_theme/app_colors.dart';
 
 class HollowStarDiamondPainter extends CustomPainter {
   @override

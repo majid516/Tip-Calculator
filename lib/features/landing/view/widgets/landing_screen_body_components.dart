@@ -1,8 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:tip_calculator/core/constants/screen_size/screen_size.dart';
-import 'package:tip_calculator/features/landing/view/widgets/animated_opacity_text_widget.dart';
-import 'package:tip_calculator/features/landing/view/widgets/animation_widget.dart';
-import 'package:tip_calculator/features/landing/view/widgets/custom_get_started_button.dart';
+import 'package:tip_calculator/features/landing/view/widgets/mobile_view.dart';
+import 'package:tip_calculator/features/landing/view/widgets/web_view.dart';
 
 class LandingScreenBodyComponents extends StatelessWidget {
   const LandingScreenBodyComponents({
@@ -26,6 +24,7 @@ class LandingScreenBodyComponents extends StatelessWidget {
        _painterController = painterController,
        _painterAnimation = painterAnimation,
        _rotationAnimation = rotationAnimation;
+
   final VoidCallback stopAnimation;
   final double topPadding;
   final double leftPadding;
@@ -42,44 +41,42 @@ class LandingScreenBodyComponents extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: ScreenSize.height,
-      width: ScreenSize.height,
-      child: Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: topPadding, left: leftPadding),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (int i = 0; i < textLines.length; i++)
-                  AnimatedOpacityTextWidget(
-                    currentTextIndex: currentTextIndex,
-                    i: i,
-                    textHeight: textHeight,
-                    textLines: textLines,
-                  ),
-              ],
-            ),
-          ),
-          AnimationWidget(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth > 600) {
+          return WebView(
+            topPadding: topPadding,
+            leftPadding: leftPadding,
+            textLines: textLines,
+            currentTextIndex: currentTextIndex,
+            textHeight: textHeight,
             positionController: _positionController,
             rotationController: _rotationController,
             textController: _textController,
             painterController: _painterController,
-            currentTextIndex: currentTextIndex,
             painterAnimation: _painterAnimation,
             rotationAnimation: _rotationAnimation,
-            textLines: textLines,
-            topPadding: topPadding,
-            textHeight: textHeight,
-            leftPadding: leftPadding,
             currentRotation: currentRotation,
-          ),
-          CustomGetStartedButton(stopAnimation: stopAnimation),
-        ],
-      ),
+            stopAnimation: stopAnimation,
+          );
+        } else {
+          return MobileView(
+            topPadding: topPadding,
+            leftPadding: leftPadding,
+            textLines: textLines,
+            currentTextIndex: currentTextIndex,
+            textHeight: textHeight,
+            positionController: _positionController,
+            rotationController: _rotationController,
+            textController: _textController,
+            painterController: _painterController,
+            painterAnimation: _painterAnimation,
+            rotationAnimation: _rotationAnimation,
+            currentRotation: currentRotation,
+            stopAnimation: stopAnimation,
+          );
+        }
+      },
     );
   }
 }

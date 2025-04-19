@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:tip_calculator/core/constants/app_theme/app_theme.dart';
+import 'package:tip_calculator/core/constants/app_theme/app_colors.dart';
 
 class PositionedTextWidget extends StatelessWidget {
   const PositionedTextWidget({
