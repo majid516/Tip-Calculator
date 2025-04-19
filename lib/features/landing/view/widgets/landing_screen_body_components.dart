@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:tip_calculator/features/landing/view/widgets/mobile_view.dart';
-import 'package:tip_calculator/features/landing/view/widgets/web_view.dart';
 
 class LandingScreenBodyComponents extends StatelessWidget {
   const LandingScreenBodyComponents({
@@ -41,42 +40,20 @@ class LandingScreenBodyComponents extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth > 600) {
-          return WebView(
-            topPadding: topPadding,
-            leftPadding: leftPadding,
-            textLines: textLines,
-            currentTextIndex: currentTextIndex,
-            textHeight: textHeight,
-            positionController: _positionController,
-            rotationController: _rotationController,
-            textController: _textController,
-            painterController: _painterController,
-            painterAnimation: _painterAnimation,
-            rotationAnimation: _rotationAnimation,
-            currentRotation: currentRotation,
-            stopAnimation: stopAnimation,
-          );
-        } else {
-          return MobileView(
-            topPadding: topPadding,
-            leftPadding: leftPadding,
-            textLines: textLines,
-            currentTextIndex: currentTextIndex,
-            textHeight: textHeight,
-            positionController: _positionController,
-            rotationController: _rotationController,
-            textController: _textController,
-            painterController: _painterController,
-            painterAnimation: _painterAnimation,
-            rotationAnimation: _rotationAnimation,
-            currentRotation: currentRotation,
-            stopAnimation: stopAnimation,
-          );
-        }
-      },
+    return MobileView(
+      topPadding: topPadding,
+      leftPadding: leftPadding,
+      textLines: textLines,
+      currentTextIndex: currentTextIndex,
+      textHeight: textHeight,
+      positionController: _positionController,
+      rotationController: _rotationController,
+      textController: _textController,
+      painterController: _painterController,
+      painterAnimation: _painterAnimation,
+      rotationAnimation: _rotationAnimation,
+      currentRotation: currentRotation,
+      stopAnimation: stopAnimation,
     );
   }
 }
